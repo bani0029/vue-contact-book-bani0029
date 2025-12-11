@@ -17,12 +17,33 @@
     <!-- Main Content -->
     <main class="main-content">
       <form @submit.prevent="handleSubmit" class="contact-form">
-        <!-- Avatar Preview -->
+        <!-- Avatar/Photo Section -->
         <div class="avatar-section">
-          <div class="avatar-preview" :style="{ background: avatarColor }">
-            {{ formData.firstName.charAt(0) || '?' }}{{ formData.lastName.charAt(0) || '' }}
+          <div class="avatar-preview" :style="{ background: formData.photoUrl ? 'transparent' : avatarColor }">
+            <img v-if="formData.photoUrl" :src="formData.photoUrl" alt="Contact photo" class="avatar-img" />
+            <span v-else>{{ formData.firstName.charAt(0) || '?' }}{{ formData.lastName.charAt(0) || '' }}</span>
           </div>
-          <p class="avatar-hint">Avatar updates as you type</p>
+          <div class="photo-upload">
+            <input
+              type="file"
+              id="photo"
+              accept="image/*"
+              @change="handlePhotoUpload"
+              style="display: none"
+              ref="fileInput"
+            />
+            <button type="button" @click="$refs.fileInput.click()" class="btn-upload">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" x2="12" y1="3" y2="15"></line>
+              </svg>
+              {{ formData.photoUrl ? 'Change Photo' : 'Upload Photo' }}
+            </button>
+            <button v-if="formData.photoUrl" type="button" @click="removePhoto" class="btn-remove-photo">
+              Remove
+            </button>
+          </div>
         </div>
 
         <!-- Form Fields -->
@@ -36,10 +57,11 @@
                 id="firstName"
                 v-model="formData.firstName"
                 type="text"
-                placeholder="John"
+                maxlength="50"
                 required
                 :class="{ error: errors.firstName }"
               />
+              <span class="char-count">{{ formData.firstName.length }}/50</span>
               <span v-if="errors.firstName" class="error-text">{{ errors.firstName }}</span>
             </div>
 
@@ -49,10 +71,11 @@
                 id="lastName"
                 v-model="formData.lastName"
                 type="text"
-                placeholder="Doe"
+                maxlength="50"
                 required
                 :class="{ error: errors.lastName }"
               />
+              <span class="char-count">{{ formData.lastName.length }}/50</span>
               <span v-if="errors.lastName" class="error-text">{{ errors.lastName }}</span>
             </div>
           </div>
@@ -68,11 +91,12 @@
                 id="email"
                 v-model="formData.email"
                 type="email"
-                placeholder="john@example.com"
+                maxlength="100"
                 required
                 :class="{ error: errors.email }"
               />
             </div>
+            <span class="char-count">{{ formData.email.length }}/100</span>
             <span v-if="errors.email" class="error-text">{{ errors.email }}</span>
           </div>
 
@@ -86,9 +110,10 @@
                 id="phone"
                 v-model="formData.phone"
                 type="tel"
-                placeholder="(555) 123-4567"
+                maxlength="20"
               />
             </div>
+            <span class="char-count">{{ formData.phone.length }}/20</span>
           </div>
         </div>
 
@@ -111,9 +136,10 @@
                 id="company"
                 v-model="formData.company"
                 type="text"
-                placeholder="Acme Inc."
+                maxlength="100"
               />
             </div>
+            <span class="char-count">{{ formData.company.length }}/100</span>
           </div>
 
           <div class="form-group">
@@ -127,9 +153,10 @@
                 id="address"
                 v-model="formData.address"
                 type="text"
-                placeholder="123 Main St, City, State"
+                maxlength="200"
               />
             </div>
+            <span class="char-count">{{ formData.address.length }}/200</span>
           </div>
 
           <div class="form-group">
@@ -137,9 +164,10 @@
             <textarea
               id="notes"
               v-model="formData.notes"
-              placeholder="Add any notes about this contact..."
+              maxlength="500"
               rows="4"
             ></textarea>
+            <span class="char-count">{{ formData.notes.length }}/500</span>
           </div>
         </div>
 
@@ -196,7 +224,8 @@ const formData = reactive({
   phone: '',
   company: '',
   address: '',
-  notes: ''
+  notes: '',
+  photoUrl: ''
 })
 
 const errors = reactive({
@@ -305,6 +334,30 @@ const goBack = () => {
     router.push('/')
   }
 }
+
+const fileInput = ref(null)
+
+const handlePhotoUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (file.size > 5000000) {
+      alert('Photo must be less than 5MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      formData.photoUrl = e.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removePhoto = () => {
+  formData.photoUrl = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
 </script>
 
 <style scoped>
@@ -370,26 +423,78 @@ const goBack = () => {
 /* Avatar Section */
 .avatar-section {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .avatar-preview {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: white;
   text-transform: uppercase;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.avatar-hint {
-  font-size: 13px;
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.photo-upload {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-upload {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-upload:hover {
+  background: #5568d3;
+}
+
+.btn-remove-photo {
+  padding: 8px 16px;
+  background: #f0f0f0;
   color: #666;
-  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-remove-photo:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 /* Form */
@@ -467,6 +572,14 @@ const goBack = () => {
 .form-group textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.char-count {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  text-align: right;
+  margin-top: 4px;
 }
 
 .input-with-icon {

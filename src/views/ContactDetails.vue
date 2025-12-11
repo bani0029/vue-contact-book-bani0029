@@ -72,9 +72,10 @@
     <main v-else class="main-content">
       <!-- Profile Card -->
       <div class="profile-card">
-        <div class="profile-header" :style="{ background: getAvatarColor(contact) }">
+        <div class="profile-header" :style="{ background: contact.photoUrl ? 'transparent' : getAvatarColor(contact) }">
           <div class="avatar">
-            {{ getInitials(contact) }}
+            <img v-if="contact.photoUrl" :src="contact.photoUrl" alt="Contact photo" class="avatar-img" />
+            <span v-else>{{ getInitials(contact) }}</span>
           </div>
         </div>
         <div class="profile-body">
@@ -208,7 +209,7 @@ import { useContacts } from '../composables/useContacts'
 
 const router = useRouter()
 const route = useRoute()
-const { getContactById, deleteContact, blockContact, unblockContact } = useContacts()
+const { getContactById, deleteContact, blockContact, unblockContact, updateLastContacted } = useContacts()
 
 const contact = ref(null)
 const loading = ref(true)
@@ -227,6 +228,11 @@ onMounted(() => {
   const id = route.params.id
   contact.value = getContactById(id)
   loading.value = false
+  
+  // Update last contacted when viewing details
+  if (contact.value) {
+    updateLastContacted(id)
+  }
 })
 
 const getAvatarColor = (contact) => {
@@ -447,6 +453,17 @@ const handleUnblock = () => {
   border: 4px solid white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(40px);
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .profile-body {

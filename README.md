@@ -1,52 +1,44 @@
 # Contact Book Application
 
-A contact book web application built with Vue 3, Vue Router 4, and Vite.
+Author: Saksar Baniya
+
+## Description
+
+A contact management web application built with Vue 3, Vue Router 4, and Vite. Users can view, search, add, edit, delete, and manage contacts with data stored in local storage.
 
 ## Features
 
-- View all contacts alphabetically sorted by last name
-- Search/filter contacts by first or last name
+- Display contacts alphabetically by last name
+- Search contacts by first and last name
 - View contact details
-- Add new contacts
+- Add new contacts with form validation
 - Edit existing contacts
 - Delete contacts
-- Block/unblock contacts
-- Data persists in local storage
+- Block and unblock contacts
+- Recent contacts section
+- Photo upload support
+- Responsive mobile design
+- Data persistence with local storage
 
 ## Technologies
 
-- Vue 3 (Composition API)
+- Vue 3
 - Vue Router 4
 - Vite
 - Local Storage
 
-## Getting Started
+## Installation
 
-### Install dependencies
-
-```bash
+Install dependencies:
 npm install
-```
 
-### Run development server
-
-```bash
+Run development server:
 npm run dev
-```
 
-### Build for production
-
-```bash
+Build for production:
 npm run build
-```
 
-## Routes
+## Usage
 
-- `/` - Contact list (home)
-- `/contact/new` - Add new contact
-- `/contact/:id` - View contact details
-- `/contact/:id/edit` - Edit contact
-
-## Author
-
-Saksar Baniya
+The application will start on http://localhost:5173
+Navigate through contacts, click to view details, use the search bar to filter, and add new contacts using the plus button.

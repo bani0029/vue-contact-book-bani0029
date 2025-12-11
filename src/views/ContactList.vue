@@ -3,15 +3,7 @@
     <nav class="navbar">
       <div class="nav-content">
         <div class="logo">
-          <div class="logo-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          <span class="logo-text">Contact Book</span>
+          <h1 class="logo-text">CONTACTS</h1>
         </div>
         <button @click="goToNewContact" class="btn-new">
           <span class="btn-icon">+</span>
@@ -21,11 +13,6 @@
     </nav>
 
     <main class="main-content">
-      <div class="hero">
-        <h1>Contact Book</h1>
-        <p class="hero-subtitle">Your Contact List</p>
-      </div>
-
       <!-- Search Section -->
       <div class="search-section">
         <div class="search-wrapper">
@@ -48,41 +35,69 @@
         </div>
       </div>
 
-      <!-- Results Info -->
-      <div class="results-info">
-        <span v-if="filteredContacts.length > 0" class="results-count">
-          {{ filteredContacts.length }} {{ filteredContacts.length === 1 ? 'contact' : 'contacts' }}
-          <span v-if="searchQuery"> matching "{{ searchQuery }}"</span>
-        </span>
-        <span v-else-if="searchQuery" class="no-results">
-          No contacts found for "{{ searchQuery }}"
-        </span>
+      <!-- Recent Contacts (only when not searching) -->
+      <div v-if="!searchQuery && recentContacts.length > 0" class="recent-section">
+        <h2 class="section-title">Recent</h2>
+        <div class="recent-grid">
+          <div
+            v-for="contact in recentContacts"
+            :key="'recent-' + contact.id"
+            class="recent-contact"
+            @click="goToContact(contact.id)"
+          >
+            <div class="recent-avatar" :style="{ background: getAvatarColor(contact) }">
+              <img v-if="contact.photoUrl" :src="contact.photoUrl" alt="" class="avatar-img" />
+              <span v-else>{{ getInitials(contact) }}</span>
+            </div>
+            <p class="recent-name">{{ contact.firstName }}</p>
+          </div>
+        </div>
       </div>
 
-      <!-- Contacts Grid -->
-      <div v-if="filteredContacts.length > 0" class="contacts-grid">
-        <article
-          v-for="contact in filteredContacts"
-          :key="contact.id"
-          class="contact-card"
-          @click="goToContact(contact.id)"
-          tabindex="0"
-          @keyup.enter="goToContact(contact.id)"
-        >
-          <div class="card-avatar" :style="{ background: getAvatarColor(contact) }">
-            {{ getInitials(contact) }}
+      <!-- All Contacts Section -->
+      <div v-if="filteredContacts.length > 0" class="contacts-section">
+        <h2 class="section-title">
+          {{ searchQuery ? `Results (${filteredContacts.length})` : 'All Contacts' }}
+        </h2>
+
+        <!-- Contacts List with Alphabetical Grouping -->
+        <div v-for="(group, letter) in groupedContacts" :key="letter" class="contact-group">
+          <div class="alphabet-header">{{ letter }}</div>
+          <div class="contacts-list">
+            <article
+              v-for="contact in group"
+              :key="contact.id"
+              :class="['contact-card', { 'blocked-contact': contact.blocked }]"
+            >
+              <div class="contact-main" @click="goToContact(contact.id)">
+                <div class="card-avatar" :style="{ background: getAvatarColor(contact) }">
+                  <img v-if="contact.photoUrl" :src="contact.photoUrl" alt="" class="avatar-img" />
+                  <span v-else>{{ getInitials(contact) }}</span>
+                </div>
+                <div class="card-content">
+                  <h3 class="card-name">
+                    {{ contact.firstName }} {{ contact.lastName }}
+                    <span v-if="contact.blocked" class="blocked-badge">Blocked</span>
+                  </h3>
+                  <p class="card-email">{{ contact.email }}</p>
+                </div>
+              </div>
+              <div v-if="contact.blocked" class="card-actions">
+                <button
+                  @click.stop="toggleBlock(contact)"
+                  class="btn-unblock"
+                  title="Unblock"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                  </svg>
+                  <span>Unblock</span>
+                </button>
+              </div>
+            </article>
           </div>
-          <div class="card-content">
-            <h3 class="card-name">{{ contact.firstName }} {{ contact.lastName }}</h3>
-            <p class="card-email">{{ contact.email }}</p>
-            <p v-if="contact.phone" class="card-phone">{{ contact.phone }}</p>
-          </div>
-          <div class="card-arrow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6"></path>
-            </svg>
-          </div>
-        </article>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -102,45 +117,20 @@
         </button>
       </div>
 
-      <!-- Blocked Contacts Section -->
-      <div v-if="blockedContacts.length > 0 && !searchQuery" class="blocked-section">
-        <button @click="showBlocked = !showBlocked" class="blocked-header">
-          <div class="blocked-title">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="m4.9 4.9 14.2 14.2"></path>
-            </svg>
-            <span>Blocked Contacts ({{ blockedContacts.length }})</span>
-          </div>
-          <svg :class="{ rotated: showBlocked }" class="chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"></path>
+      <!-- No Search Results -->
+      <div v-else-if="searchQuery" class="empty-state">
+        <div class="empty-illustration">
+          <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
           </svg>
-        </button>
-        
-        <div v-if="showBlocked" class="blocked-list">
-          <article
-            v-for="contact in blockedContacts"
-            :key="contact.id"
-            class="contact-card blocked"
-            @click="goToContact(contact.id)"
-            tabindex="0"
-            @keyup.enter="goToContact(contact.id)"
-          >
-            <div class="card-avatar blocked-avatar" :style="{ background: getAvatarColor(contact) }">
-              {{ getInitials(contact) }}
-            </div>
-            <div class="card-content">
-              <h3 class="card-name">{{ contact.firstName }} {{ contact.lastName }}</h3>
-              <p class="card-email">{{ contact.email }}</p>
-            </div>
-            <div class="card-arrow">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </div>
-          </article>
         </div>
+        <h2>No results found</h2>
+        <p>No contacts match "{{ searchQuery }}"</p>
+        <button @click="clearSearch" class="btn-secondary">Clear Search</button>
       </div>
+
+      <!-- Blocked Contacts Section -->
     </main>
 
     <!-- Footer -->
@@ -156,7 +146,14 @@ import { useRouter } from 'vue-router'
 import { useContacts } from '../composables/useContacts'
 
 const router = useRouter()
-const { searchContacts, getAllContacts, getBlockedContacts } = useContacts()
+const { 
+  searchContacts, 
+  getAllContacts, 
+  getBlockedContacts,
+  getRecentContacts,
+  blockContact,
+  unblockContact
+} = useContacts()
 
 const showBlocked = ref(false)
 
@@ -181,9 +178,34 @@ const getAvatarColor = (contact) => {
 
 const filteredContacts = computed(() => {
   if (searchQuery.value.trim() === '') {
-    return getAllContacts()
+    return getAllContacts(true) // Include blocked contacts
   }
-  return searchContacts(searchQuery.value)
+  return searchContacts(searchQuery.value, true) // Include blocked contacts in search
+})
+
+const groupedContacts = computed(() => {
+  const contacts = filteredContacts.value
+  const groups = {}
+  
+  contacts.forEach(contact => {
+    const firstLetter = contact.lastName.charAt(0).toUpperCase()
+    if (!groups[firstLetter]) {
+      groups[firstLetter] = []
+    }
+    groups[firstLetter].push(contact)
+  })
+  
+  // Sort groups alphabetically
+  const sortedGroups = {}
+  Object.keys(groups).sort().forEach(key => {
+    sortedGroups[key] = groups[key]
+  })
+  
+  return sortedGroups
+})
+
+const recentContacts = computed(() => {
+  return getRecentContacts(4)
 })
 
 const blockedContacts = computed(() => {
@@ -205,110 +227,91 @@ const goToContact = (id) => {
 const goToNewContact = () => {
   router.push('/contact/new')
 }
+
+const toggleBlock = (contact) => {
+  if (contact.blocked) {
+    unblockContact(contact.id)
+  } else {
+    blockContact(contact.id)
+  }
+}
 </script>
 
 <style scoped>
 .page-container {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f8f9fa;
 }
 
 /* Navbar */
 .navbar {
-  background: #6366f1;
-  padding: 0 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  padding: 0 16px;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .nav-content {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 56px;
+  height: 60px;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.logo-icon {
-  width: 36px;
-  height: 36px;
-  background: white;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
+  gap: 12px;
 }
 
 .logo-text {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 900;
   color: white;
+  letter-spacing: 1px;
+  margin: 0;
 }
 
 .btn-new {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: white;
-  color: #6366f1;
+  color: #1e293b;
   border: none;
-  border-radius: 6px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.2s;
 }
 
 .btn-new:hover {
-  background: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .btn-icon {
-  font-size: 16px;
-}
-
-.btn-text {
-  display: inline;
+  font-size: 18px;
 }
 
 /* Main Content */
 .main-content {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 24px 20px;
-}
-
-/* Hero */
-.hero {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.hero h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.hero-subtitle {
-  font-size: 14px;
-  color: #666;
+  padding: 20px 16px 40px;
 }
 
 /* Search */
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .search-wrapper {
@@ -319,104 +322,199 @@ const goToNewContact = () => {
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 16px;
   color: #999;
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 40px;
+  padding: 14px 48px;
   font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: none;
+  border-radius: 12px;
   background: white;
   font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-}
-
-.search-input::placeholder {
-  color: #999;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
 }
 
 .clear-btn {
   position: absolute;
-  right: 8px;
+  right: 12px;
   padding: 6px;
-  background: #eee;
+  background: #f0f0f0;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   color: #666;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .clear-btn:hover {
-  background: #ddd;
+  background: #e0e0e0;
 }
 
-/* Results Info */
-.results-info {
-  margin-bottom: 16px;
-}
-
-.results-count {
-  font-size: 14px;
+/* Section Title */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
   color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding: 0 4px;
 }
 
-.no-results {
-  font-size: 14px;
-  color: #999;
+/* Recent Contacts */
+.recent-section {
+  margin-bottom: 32px;
 }
 
-/* Contacts Grid */
-.contacts-grid {
+.recent-grid {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 8px 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.recent-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.recent-contact {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
+  min-width: 72px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.recent-contact:hover {
+  transform: scale(1.05);
+}
+
+.recent-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.recent-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* All Contacts Section */
+.contacts-section {
+  margin-bottom: 24px;
+}
+
+.contact-group {
+  margin-bottom: 28px;
+}
+
+.alphabet-header {
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 4px 8px;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+/* Contacts List */
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* Contact Card */
 .contact-card {
   background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.contact-card.blocked-contact {
+  background: #fef2f2;
+  opacity: 0.85;
+}
+
+.contact-card.blocked-contact:hover {
+  background: #fee2e2;
+}
+
+.contact-main {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  padding: 12px 16px;
   cursor: pointer;
 }
 
 .contact-card:hover {
-  border-color: #6366f1;
-  background: #fafafa;
-}
-
-.contact-card:focus {
-  outline: none;
-  border-color: #6366f1;
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .card-avatar {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: white;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .card-content {
@@ -425,10 +523,29 @@ const goToNewContact = () => {
 }
 
 .card-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: 17px;
+  font-weight: 700;
+  color: #000000;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blocked-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .card-email {
@@ -439,33 +556,51 @@ const goToNewContact = () => {
   text-overflow: ellipsis;
 }
 
-.card-phone {
-  font-size: 13px;
-  color: #999;
+.card-actions {
+  padding: 12px 16px 12px 0;
+  display: flex;
+  gap: 8px;
 }
 
-.card-arrow {
-  color: #ccc;
+.btn-unblock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-unblock:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.btn-unblock svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Empty State */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
+  padding: 60px 20px;
 }
 
 .empty-illustration {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   color: #ccc;
 }
 
-.empty-illustration svg {
-  width: 60px;
-  height: 60px;
-}
-
 .empty-state h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
@@ -474,105 +609,77 @@ const goToNewContact = () => {
 .empty-state p {
   font-size: 14px;
   color: #666;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
 }
 
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: #6366f1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-primary:hover {
-  background: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
 }
 
-/* Blocked Section */
-.blocked-section {
-  margin-top: 24px;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+.btn-secondary {
+  background: #f0f0f0;
+  color: #666;
 }
 
-.blocked-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 16px;
-  background: #fef3c7;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.blocked-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #92400e;
-}
-
-.chevron {
-  color: #92400e;
-  transition: transform 0.2s ease;
-}
-
-.chevron.rotated {
-  transform: rotate(180deg);
-}
-
-.blocked-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: #f3f4f6;
-}
-
-.contact-card.blocked {
-  background: #fffbeb;
-  opacity: 0.9;
-}
-
-.contact-card.blocked:hover {
-  background: #fef3c7;
-}
-
-.blocked-avatar {
-  opacity: 0.7;
+.btn-secondary:hover {
+  background: #e0e0e0;
 }
 
 /* Footer */
 .footer {
   text-align: center;
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #e5e5e5;
-}
-
-.footer p {
+  padding: 24px;
+  color: #94a3b8;
   font-size: 13px;
-  color: #666;
-  margin: 0;
+  border-top: none;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
 }
 
-/* Mobile */
-@media (max-width: 600px) {
+/* Responsive */
+@media (max-width: 640px) {
+  .nav-content {
+    height: 56px;
+  }
+  
   .btn-text {
     display: none;
+  }
+  
+  .main-content {
+    padding: 16px 12px 32px;
+  }
+  
+  .recent-grid {
+    gap: 12px;
+  }
+  
+  .recent-contact {
+    min-width: 64px;
+  }
+  
+  .recent-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
   }
 }
 </style>
